@@ -262,17 +262,24 @@ function feed_anvil(anvil_id, what, context_data)
 			local wand = EZWand(stored_wand_id)
 			-- Call function to apply bonus based on material
 			local potion_bonuses = dofile_once("mods/anvil_of_destiny/files/entities/anvil/potion_bonuses.lua")
-			potion_bonuses[state.potion_material](wand)
-			local wand_level = wand_compute_level(wand.entity_id)
-			for i=1, state.tablets do
-				local action_type = ACTION_TYPE_MODIFIER
-				local only_modifiers = ModSettingGet("anvil_of_destiny.only_modifiers")
-				if not only_modifiers then
-					action_type = get_random_action_type(8, 1, 2, Random()*100, Random()*100, Random()*100)
-				end
-				local action = GetRandomActionWithType(Random()*100, Random()*100, wand_level, action_type, Random()*100)
-				wand:AttachSpells(action)
-			end
+            if result == "pw" then
+                potion_bonuses[state.potion_material].bonus(wand)
+            else
+                if ModSettingGet("anvil_of_destiny.missing_tablet_bonus_ac") and not potion_bonuses[state.potion_material].tablet then
+                    local wand_level = wand_compute_level(wand.entity_id)
+                    for i=1, state.tablets do
+                        local action_type = ACTION_TYPE_MODIFIER
+                        local only_modifiers = ModSettingGet("anvil_of_destiny.only_modifiers")
+                        if not only_modifiers then
+                            action_type = get_random_action_type(8, 1, 2, Random()*100, Random()*100, Random()*100)
+                        end
+                        local action = GetRandomActionWithType(Random()*100, Random()*100, wand_level, action_type, Random()*100)
+                        wand:AttachSpells(action)
+                    end
+                else
+                    potion_bonuses[state.potion_material].tablet(wand)
+                end
+            end
 			EntityRemoveFromParent(stored_wand_id)
 			EntityAddChild(get_output_storage(anvil_id), stored_wand_id)
 			spawn_result_spawner(anvil_id, x, y)
@@ -324,7 +331,23 @@ function is_valid_anvil_input(anvil_id, what, material)
 
 	if what == "potion" then
 		local potion_bonuses = dofile_once("mods/anvil_of_destiny/files/entities/anvil/potion_bonuses.lua")
-		return state.tablets < 2 and state.potions == 0 and (not material or material and potion_bonuses[material])
+
+        local default_value = state.potions == 0 --must be no other inserted potion
+        and (not material or material and potion_bonuses[material] and potion_bonuses[material].bonus) --no input material or material.bonus must exist
+        and (state.tablets == 0 or state.tablets == 1 and potion_bonuses[material] and potion_bonuses[material].tablet) --0 tablets or 1 tablet and material.tablet() must exist
+        print("default_value = " .. tostring(default_value))
+        print(tostring(not material or material and potion_bonuses[material] and potion_bonuses[material].bonus))
+        print(tostring(material))
+        print(tostring(potion_bonuses[material]))
+        for key, value in pairs(potion_bonuses[material] or {}) do
+            print(key .. " = " .. value)
+        end
+        if potion_bonuses[material] and potion_bonuses[material].is_valid then --potion bonus is_valid() function can choose to override default value
+            local return_value = potion_bonuses[material].is_valid()
+            if return_value == nil then return default_value
+            else return return_value end
+        end
+		return default_value
 	elseif what == "tablet" then
 		if state.potions > 0 then
 			return state.tablets < 1

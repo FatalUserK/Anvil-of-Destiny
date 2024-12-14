@@ -16,7 +16,7 @@ local function format_fn_buffamount(val)
 	return string.format("%.1f", val)
 end
 
-local languages = {
+local languages = { --translation keys
 	["English"] = "en",
 	["русский"] = "ru",
 	["Português (Brasil)"] = "ptbr",
@@ -161,6 +161,16 @@ breaking compatibility.]],
 		en = "Never spawn naturally",
 		en_desc = "Will never spawn anvils in the biomes,\nonly through portable anvil or at the lava lake, if the option is enabled.",
 	},
+    legacy_potion_bonuses = {
+        en = "Legacy Potion Bonuses",
+        en_desc = "Potion Bonuses were rebalanced\nThis setting reverts the changes made",
+    },
+    missing_tablet_bonus_ac = {
+        en = "Missing Tablet Bonus to Alway Cast",
+        en_desc = [[If a valid tablet bonus is missing for an otherwise-valid potion
+material, this setting will make it so you receive an always-cast
+by default (will just reject the input if the setting is false)]]
+    },
 }
 
 
@@ -430,6 +440,16 @@ local settings = {
 		value_display_formatting = " $0%",
 		scope = MOD_SETTING_SCOPE_RUNTIME,
 	},
+    {
+        id = "missing_tablet_bonus_ac",
+        value_default = false,
+        scope = MOD_SETTING_SCOPE_RUNTIME,
+    },
+    {
+        id = "legacy_potion_bonuses",
+        value_default = false,
+        scope = MOD_SETTING_SCOPE_NEW_GAME,
+    },
 	{
 		id = "fog_of_war_hole",
 		value_default = false,

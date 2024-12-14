@@ -10,15 +10,16 @@
   </SpriteComponent> -->
 
 	<InteractableComponent
-    radius="10"
-		ui_text="$ui_AoD_interact_potion"
-    name="potion"
+        radius="10"
+		ui_text="you shouldnt be seeing this!"
+        name="potion"
     >
 	</InteractableComponent>
 
-  <LuaComponent 
-    script_interacting="mods/anvil_of_destiny/files/entities/anvil/potion_insert.lua"
-    >
-  </LuaComponent>
+    <LuaComponent
+        script_interacting="mods/anvil_of_destiny/files/entities/anvil/potion_insert.lua"
+	    script_source_file="mods/anvil_of_destiny/files/entities/anvil/update_potion_prompt.lua"
+        execute_every_n_frame="1"
+    />
 
 </Entity>
