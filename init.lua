@@ -165,6 +165,9 @@ function OnPlayerSpawned(player)
   end
 end
 
+--Conjurer Support
+if ModIsEnabled("raksa") then ModLuaFileAppend("mods/raksa/files/scripts/lists/entity_categories.lua", "mods/anvil_of_destiny/files/compatibility/conjurer/entities_AoD.lua") end
+
 --Add Translations
 local translations = ModTextFileGetContent("data/translations/common.csv")
 local new_translations = ModTextFileGetContent("mods/anvil_of_destiny/translations.csv")
