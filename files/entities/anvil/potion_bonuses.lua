@@ -931,7 +931,7 @@ dofile("mods/anvil_of_destiny/files/scripts/modded_content.lua")
 
 for key, value in pairs(old_bonuses) do
     print(key)
-    AoD_material_bonuses.key = {
+    AoD_material_bonuses[key] = {
         material = key,
         old_bonus = value,
         bonus = function(self, wand, anvil_id, material)
@@ -949,7 +949,7 @@ for key, value in pairs(old_bonuses) do
             wand:AttachSpells(action)
         end,
     }
-    for k, v in pairs(AoD_material_bonuses.key) do
+    for k, v in pairs(AoD_material_bonuses[key]) do
         print(k .. " = " .. tostring(v))
     end
 end
