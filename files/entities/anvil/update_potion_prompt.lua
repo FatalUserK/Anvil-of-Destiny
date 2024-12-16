@@ -29,7 +29,6 @@ if #players > 0 then
             for material_id, amount in pairs(ComponentGetValue2(material_inventory_component, "count_per_material_type")) do
                 if amount > math.max(800, material_amount) then
                     material = CellFactory_GetName(material_id - 1)
-                    print(material)
                     if is_valid_anvil_input(anvil_id, "potion", material) then
                         material_name = material
                         material_amount = amount

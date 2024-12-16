@@ -263,7 +263,7 @@ function feed_anvil(anvil_id, what, context_data)
 			-- Call function to apply bonus based on material
 			local potion_bonuses = dofile_once("mods/anvil_of_destiny/files/entities/anvil/potion_bonuses.lua")
             if result == "pw" then
-                potion_bonuses[state.potion_material].bonus(wand)
+                potion_bonuses[state.potion_material]:bonus(wand)
             else
                 if ModSettingGet("anvil_of_destiny.missing_tablet_bonus_ac") and not potion_bonuses[state.potion_material].tablet then
                     local wand_level = wand_compute_level(wand.entity_id)
@@ -277,7 +277,7 @@ function feed_anvil(anvil_id, what, context_data)
                         wand:AttachSpells(action)
                     end
                 else
-                    potion_bonuses[state.potion_material].tablet(wand)
+                    potion_bonuses[state.potion_material]:tablet(wand)
                 end
             end
 			EntityRemoveFromParent(stored_wand_id)
@@ -335,17 +335,11 @@ function is_valid_anvil_input(anvil_id, what, material)
         local default_value = state.potions == 0 --must be no other inserted potion
         and (not material or material and potion_bonuses[material] and potion_bonuses[material].bonus) --no input material or material.bonus must exist
         and (state.tablets == 0 or state.tablets == 1 and potion_bonuses[material] and potion_bonuses[material].tablet) --0 tablets or 1 tablet and material.tablet() must exist
-        print("default_value = " .. tostring(default_value))
-        print(tostring(not material or material and potion_bonuses[material] and potion_bonuses[material].bonus))
-        print(tostring(material))
-        print(tostring(potion_bonuses[material]))
-        for key, value in pairs(potion_bonuses[material] or {}) do
-            print(key .. " = " .. value)
-        end
         if potion_bonuses[material] and potion_bonuses[material].is_valid then --potion bonus is_valid() function can choose to override default value
             local return_value = potion_bonuses[material].is_valid()
-            if return_value == nil then return default_value
-            else return return_value end
+            print(tostring(default_value))
+            print(tostring(return_value))
+            return return_value == nil and default_value or return_value
         end
 		return default_value
 	elseif what == "tablet" then

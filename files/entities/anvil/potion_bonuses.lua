@@ -1,6 +1,7 @@
 mod_additional_spells = {}
 mod_effects = {}
 
+
 SetRandomSeed(10, 49)
 
 local function apply_mod_effects(material_name, wand)
@@ -39,11 +40,12 @@ local function set_wand_capacity(wand, amount, static)
 end
 
 
+
 --table is global now so mods can more easily access and modify existing stuff
 AoD_material_bonuses = {
     AoD_example_material = {
 
-        material = "example_material", --the material used, this should be identical to the table name. This is here because the functions have no other way to grab the name of the table they're in, this helps with things like if you want 2 materials to have the same functionality, specifically worked on this seeing the issues Horscht had with Sima not inheriting Alcohol's spells
+        material = "AoD_example_material", --the material used, this should be identical to the table name. This is here because the functions have no other way to grab the name of the table they're in, this helps with things like if you want 2 materials to have the same functionality, specifically worked on this seeing the issues Horscht had with Sima not inheriting Alcohol's spells
 
         spells = { --this is the list of spell IDs you wish to apply to the wand
             "MIST_INFORMATION", "MATERIAL_DEEZIUM", "TOUCH_GRASS", "CRITICAL_SKILL_ISSUE", "ETC"
@@ -58,26 +60,18 @@ AoD_material_bonuses = {
         tablet = function(self, wand, anvil_id) --this function runs for the PTW recipe, this runs in place of the bonus function above. You can make changes to the input wand here
             self:bonus(wand) --You can run/access other data values or functions using "self:" like this, it is used here to apply a regular bonus before the tablet bonus 
 
-            local increase = {int = wand.manaChargeSpeed * Randomf(1.5, 2) }
-            add_tbonus(wand, material, increase)
 
-            wand.manaChargeSpeed = wand.manaChargeSpeed + increase
+            wand.manaChargeSpeed = wand.manaChargeSpeed * Randomf(2.5, 3)
 
             add_spells_to_wand(wand, self.spells, math.min(Random(2,4), math.floor(wand.capacity / 2)))
-        end, 
-
-        remove_tablet = function(self, wamd)
-            local stats = get_tbonus()
-            if stats ~= nil then
-                wand.manaChargeSpeed = wand.manaChargeSpeed - stats.int
-            else print("TABLET BONUS IS NIL? EXPECTED MATERIAL KEY IS " .. material) end
         end,
 
 
         --Some fancy-schmancy custom hooks:
 
-        --this is where you can set a custom tooltip for the "Insert Potion" prompt when you stand on the anvil with this material (potion only)
-        custom_held_tooltip = "this is a custom message telling you to press E to insert the material potion!",
+        is_valid = function()
+            return true
+        end,
 
         on_interact = function(self, was_valid, anvil_id, is_item) --this function runs when the player attempts to input a potion or item into the anvil
             if was_valid then
@@ -90,9 +84,13 @@ AoD_material_bonuses = {
         on_inserted = function(self, state, anvil_id) --this function runs after the input has been accepted into the anvil, when the glyphs light up
             print("Player's potion has finished pouring!")
         end,
+
+        custom_inspect = function ()
+            return "this is a custom message telling you to press E to insert the material potion!"
+        end
     },
-  
-  
+
+
     watera = {
 
         material = "water",
@@ -123,26 +121,14 @@ AoD_material_bonuses = {
             wand.manaMax = wand.manaMax + increase
 
             add_spells_to_wand(wand, self.spells, math.min(Random(2,4), math.floor(wand.capacity / 2)))
-            apply_mod_effects(material, wand, true)
         end,
-
-        remove_tablet = function(self) --this function should be able to undo the tablet function above. You do not need to add this, if you remove this function the anvil will just block the recipe
-            local stats = get_tbonus()
-            if stats ~= nil then
-                wand.manaMax = wand.manaMax - stats.int
-            else print("TABLET BONUS IS NIL? MATERIAL IS " .. material) end
-        end,
-  
-  
     }, 
 }
 
+AoD_material_bonuses.water = AoD_material_bonuses.AoD_example_material
+AoD_material_bonuses.water.material = "water"
 
-
-
-
-
-local old_bonuses = {
+local legacy_bonuses = {
   blood = function(wand)
     local spells = merge_spells("blood", {
       "MIST_BLOOD", "MATERIAL_BLOOD", "TOUCH_BLOOD", "CRITICAL_HIT", "BLOOD_TO_ACID",
@@ -905,6 +891,45 @@ function add_spells_to_effect(effect_name, spells)
   end
 end
 
+
+-- Set up some dummy functions that aren't available here but in item_detector.lua,
+-- but will be called from the appended functions by other mods
+function register_physics_item() end
+dofile("mods/anvil_of_destiny/files/scripts/modded_content.lua")
+
+
+if ModSettingGet("anvil_of_destiny.legacy_potion_bonuses") then
+    -- This doesn't take into account that merge_spells("alcohol", { "HEAL_BULLET" }) will still mention alcohol
+    -- fix some time later maybe... too lazy right now, would require a big rewrite
+    legacy_bonuses.sima = legacy_bonuses.alcohol
+    legacy_bonuses.juhannussima = legacy_bonuses.alcohol
+    legacy_bonuses.magic_liquid_hp_regeneration_unstable = legacy_bonuses.magic_liquid_hp_regeneration
+
+    for key, value in pairs(legacy_bonuses) do
+        print("Converting legacy recipe: " .. key)
+        AoD_material_bonuses[key] = {
+            material = key,
+            old_bonus = value,
+            bonus = function(self, wand)
+                self.old_bonus(wand)
+            end,
+            tablet = function(self, wand)
+                self.old_bonus(wand)
+                local wand_level = wand_compute_level(wand.entity_id)
+                local action_type = ACTION_TYPE_MODIFIER
+                local only_modifiers = ModSettingGet("anvil_of_destiny.only_modifiers")
+                if not only_modifiers then
+                    action_type = get_random_action_type(8, 1, 2)
+                end
+                local action = GetRandomActionWithType(Random()*100, Random()*100, wand_level, action_type, Random()*100)
+                wand:AttachSpells(action)
+            end,
+        }
+    end
+end
+
+
+local old_bonuses = {}
 function append_effect(material_name, func)
   mod_effects[material_name] = mod_effects[material_name] or {}
   table.insert(mod_effects[material_name], func)
@@ -917,20 +942,8 @@ function append_effect(material_name, func)
   end
 end
 
--- This doesn't take into account that merge_spells("alcohol", { "HEAL_BULLET" }) will still mention alcohol
--- fix some time later maybe... too lazy right now, would require a big rewrite
-old_bonuses.sima = old_bonuses.alcohol
-old_bonuses.juhannussima = old_bonuses.alcohol
-old_bonuses.magic_liquid_hp_regeneration_unstable = old_bonuses.magic_liquid_hp_regeneration
-
--- Set up some dummy functions that aren't available here but in item_detector.lua,
--- but will be called from the appended functions by other mods
-function register_physics_item() end
-dofile("mods/anvil_of_destiny/files/scripts/modded_content.lua")
-
-
 for key, value in pairs(old_bonuses) do
-    print(key)
+    print("Converting legacy mod compatibility: " .. key)
     AoD_material_bonuses[key] = {
         material = key,
         old_bonus = value,
@@ -949,9 +962,16 @@ for key, value in pairs(old_bonuses) do
             wand:AttachSpells(action)
         end,
     }
-    for k, v in pairs(AoD_material_bonuses[key]) do
-        print(k .. " = " .. tostring(v))
-    end
 end
 
+--local potion_bonuses = dofile("mods/anvil_of_destiny/files/entities/anvil/potion_bonuses.lua")
+for key, value in pairs(AoD_material_bonuses) do
+    print(tostring(key) .. ":")
+    for index, value in ipairs(value) do
+        print("    " .. tostring(index) .. " = " .. tostring(value))
+    end
+    break
+end
+
+print("returning potion bonuses")
 return AoD_material_bonuses

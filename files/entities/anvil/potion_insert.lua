@@ -73,7 +73,7 @@ function interacting(entity_who_interacted, entity_interacted, interactable_name
       local shifted_material_name = get_fungal_shifted_material_name(material_name)
       if shifted_material_name == nil then return end
       if potion_bonuses[shifted_material_name] ~= nil then -- It's a potion and it has enough material inside
-        if not is_valid_anvil_input() then return end --additional check to make sure the material is valid
+        if not is_valid_anvil_input(anvil_id, "potion", shifted_material_name) then return end --additional check to make sure the material is valid
         -- Remove the material from the potion
         AddMaterialInventoryMaterial(active_item, material_name, 0)
         play_pouring_animation(anvil_id, shifted_material_name, x, y)
